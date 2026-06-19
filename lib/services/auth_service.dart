@@ -1,55 +1,99 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  
+  // Instancia de GoogleSignIn configurada para Android/iOS
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Stream of auth status
   Stream<User?> get user => _auth.authStateChanges();
 
-  // Login with Email and Password
   Future<UserCredential?> loginWithEmail(String email, String password) async {
     try {
       return await _auth.signInWithEmailAndPassword(email: email, password: password);
-    } catch (e) {
-      print("Error en login: \$e");
-      return null;
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? "Error desconocido al iniciar sesión";
     }
   }
 
-  // Register with Email and Password
-  Future<UserCredential?> registerWithEmail(String email, String password) async {
+  Future<UserCredential?> registerWithEmail(String email, String password, String name) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: email, 
+        password: password
+      );
+
+      if (credential.user != null) {
+        await _db.collection('users').doc(credential.user!.uid).set({
+          'uid': credential.user!.uid,
+          'name': name,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'currency': 'S/',
+        });
+      }
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? "Error desconocido al registrar";
     } catch (e) {
-      print("Error en registro: \$e");
-      return null;
+      throw "Fallo en Firestore: $e";
     }
   }
 
-  // Google Sign In
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      // 1. Iniciar el flujo de autenticación de Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) {
+        debugPrint("Google Sign-In cancelado por el usuario");
+        return null;
+      }
 
+      // 2. Obtener los detalles de autenticación de la petición
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // 3. Crear una nueva credencial
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      return await _auth.signInWithCredential(credential);
+      // 4. Iniciar sesión en Firebase con la credencial de Google
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+      // 5. Crear el perfil en Firestore si es nuevo
+      if (userCredential.user != null) {
+        final userDoc = await _db.collection('users').doc(userCredential.user!.uid).get();
+        if (!userDoc.exists) {
+          await _db.collection('users').doc(userCredential.user!.uid).set({
+            'uid': userCredential.user!.uid,
+            'name': userCredential.user!.displayName ?? 'Usuario',
+            'email': userCredential.user!.email,
+            'createdAt': FieldValue.serverTimestamp(),
+            'currency': 'S/',
+          });
+        }
+      }
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Error de Firebase Auth: ${e.code} - ${e.message}");
+      throw e.message ?? "Error de autenticación con Google";
     } catch (e) {
-      print("Error en Google Sign In: \$e");
-      return null;
+      debugPrint("Error general en Google Sign-In: $e");
+      throw "Error al iniciar sesión con Google. Asegúrate de tener configurado el SHA-1 en Firebase.";
     }
   }
 
-  // Sign Out
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint("Error en signOut: $e");
+    }
   }
 }

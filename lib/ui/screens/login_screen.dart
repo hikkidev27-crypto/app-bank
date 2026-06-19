@@ -18,23 +18,34 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authService = Provider.of<AuthService>(context, listen: false);
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
-              Text(
+              const Text(
                 "Iniciar Sesión",
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 32,
-                ),
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -43,29 +54,21 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 48),
               
-              // Email Field
               const Text("Correo Electrónico", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: "ejemplo@correo.com",
-                  prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary),
-                ),
+                decoration: const InputDecoration(hintText: "ejemplo@correo.com"),
               ),
               const SizedBox(height: 24),
               
-              // Password Field
               const Text("Contraseña", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: "********",
-                  prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
-                ),
+                decoration: const InputDecoration(hintText: "********"),
               ),
               
               const SizedBox(height: 12),
@@ -79,37 +82,32 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 32),
               
-              // Login Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : () async {
                     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Por favor rellena todos los campos")),
-                      );
+                      _showError("Por favor rellena todos los campos");
                       return;
                     }
                     setState(() => _isLoading = true);
-                    final result = await authService.loginWithEmail(
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
-                    );
-                    setState(() => _isLoading = false);
-                    if (result != null) {
-                      if (mounted) {
-                        Navigator.pushReplacement(
+                    try {
+                      final result = await authService.loginWithEmail(
+                        _emailController.text.trim(),
+                        _passwordController.text.trim(),
+                      );
+                      if (result != null && mounted) {
+                        Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          (route) => false,
                         );
                       }
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Error al iniciar sesión")),
-                        );
-                      }
+                    } catch (e) {
+                      if (mounted) _showError(e.toString());
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -117,11 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading 
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         "Entrar",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
@@ -131,7 +125,6 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 24),
               
-              // Divider
               Row(
                 children: [
                   Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3))),
@@ -145,27 +138,31 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 24),
               
-              // Google Login Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : () async {
                     setState(() => _isLoading = true);
-                    final result = await authService.signInWithGoogle();
-                    setState(() => _isLoading = false);
-                    if (result != null) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Login con Google exitoso")),
+                    try {
+                      final result = await authService.signInWithGoogle();
+                      if (result != null && mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          (route) => false,
                         );
                       }
+                    } catch (e) {
+                      if (mounted) _showError(e.toString());
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
                     }
                   },
                   icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white, size: 20),
                   label: const Text(
                     "Google",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.secondary),
@@ -176,7 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 40),
               
-              // Register Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

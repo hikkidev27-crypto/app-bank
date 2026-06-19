@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/colors.dart';
 import '../../services/auth_service.dart';
+import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,11 +16,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authService = Provider.of<AuthService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,11 +56,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "Crear Cuenta",
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 32,
-                ),
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -48,76 +67,99 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 40),
               
-              // Name Field
               const Text("Nombre Completo", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: "Tu nombre",
-                  prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
-                ),
+                decoration: const InputDecoration(hintText: "Tu nombre"),
               ),
               const SizedBox(height: 24),
               
-              // Email Field
               const Text("Correo Electrónico", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: "ejemplo@correo.com",
-                  prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary),
-                ),
+                decoration: const InputDecoration(hintText: "ejemplo@correo.com"),
               ),
               const SizedBox(height: 24),
               
-              // Password Field
               const Text("Contraseña", style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
                   hintText: "********",
-                  prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              const Text("Confirmar Contraseña", style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  hintText: "********",
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
                 ),
               ),
               
               const SizedBox(height: 40),
               
-              // Register Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : () async {
-                    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Por favor rellena todos los campos")),
-                      );
+                    final name = _nameController.text.trim();
+                    final email = _emailController.text.trim();
+                    final password = _passwordController.text.trim();
+                    final confirmPassword = _confirmPasswordController.text.trim();
+
+                    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+                      _showError("Por favor rellena todos los campos");
                       return;
                     }
+
+                    if (password != confirmPassword) {
+                      _showError("Las contraseñas no coinciden");
+                      return;
+                    }
+
+                    if (password.length < 6) {
+                      _showError("La contraseña debe tener al menos 6 caracteres");
+                      return;
+                    }
+
                     setState(() => _isLoading = true);
-                    final result = await authService.registerWithEmail(
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
-                    );
-                    setState(() => _isLoading = false);
-                    if (result != null) {
+                    try {
+                      await authService.registerWithEmail(email, password, name);
                       if (mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Cuenta creada exitosamente")),
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          (route) => false,
                         );
                       }
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Error al registrar cuenta")),
-                        );
-                      }
+                    } catch (e) {
+                      if (mounted) _showError(e.toString());
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -126,14 +168,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   child: _isLoading 
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 24,
+                        width: 24,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : const Text(
-                        "Crear Cuenta",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
+                    : const Text("Crear Cuenta", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3))),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("O", style: TextStyle(color: AppColors.textSecondary)),
+                  ),
+                  Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3))),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      final result = await authService.signInWithGoogle();
+                      if (result != null && mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) _showError(e.toString());
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
+                    }
+                  },
+                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white, size: 20),
+                  label: const Text(
+                    "Registrarse con Google",
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.secondary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
               
