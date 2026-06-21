@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'core/theme/colors.dart';
 
@@ -53,8 +55,44 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      // Siempre iniciamos en Onboarding, y permitimos volver atrás
-      home: const OnboardingScreen(),
+      home: AuthWrapper(isFirebaseReady: isFirebaseReady),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  final bool isFirebaseReady;
+  const AuthWrapper({super.key, required this.isFirebaseReady});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isFirebaseReady) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Firebase no configurado correctamente."),
+        ),
+      );
+    }
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Si el usuario está autenticado, vamos directo al Home
+        if (snapshot.connectionState == ConnectionState.active) {
+          final User? user = snapshot.data;
+          if (user == null) {
+            return const OnboardingScreen();
+          } else {
+            return const HomeScreen();
+          }
+        }
+        // Mientras carga el estado de la sesión
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      },
     );
   }
 }
