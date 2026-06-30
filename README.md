@@ -3,13 +3,31 @@
 Aplicación móvil desarrollada con **Flutter** y **Firebase** para la gestión inteligente de finanzas personales.
 
 ## 📋 Características actuales
-- **Onboarding Interactivo**: Introducción de 5 ventanas deslizables con diseño moderno.
-- **Autenticación Robusta**: 
-  - Registro con validación de doble contraseña y visibilidad opcional.
+
+### 1. Gestión Financiera Integral
+- **Registro de Transacciones**: Formulario detallado para registrar ahorros, gastos e inversiones con categorías, selección de moneda (PEN/USD), fecha y descripción.
+- **Sincronización en Tiempo Real**: Los saldos totales y el historial de actividad se actualizan instantáneamente gracias a Cloud Firestore.
+- **Actividad Reciente**: Lista automatizada de los últimos movimientos realizados.
+
+### 2. Análisis y Metas
+- **Visualización de Datos**: Pantalla de estadísticas avanzada con:
+  - Gráfico de barras para ahorros semanales.
+  - Gráfico de líneas para el crecimiento del patrimonio.
+  - Gráfico de donut para la distribución porcentual de gastos.
+- **Filtros Temporales**: Análisis de finanzas por periodos: Diario, Semanal, Mensual y Anual.
+- **Gestión de Metas**: Seguimiento visual del progreso de metas de ahorro (ej: Casa, Viaje) con barras de porcentaje.
+
+### 3. Perfil y Soporte
+- **Edición de Cuenta**: Posibilidad de actualizar nombre y teléfono directamente en la base de datos.
+- **Asistente IA (Beta)**: Chatbot integrado para soporte técnico y consultas rápidas.
+- **Preferencias**: Cambio de tema (Claro/Oscuro/Sistema), idioma y moneda.
+
+### 4. Seguridad y Acceso
+- **Onboarding Interactivo**: Introducción moderna de 5 ventanas.
+- **Autenticación Multi-método**: 
   - Inicio de sesión con Email/Password.
-  - Integración con **Google Sign-In**.
-- **Base de Datos en Tiempo Real**: Sincronización automática con Cloud Firestore.
-- **Dashboard Base**: Estructura principal con navegación inferior y botón de acción central.
+  - Integración completa con **Google Sign-In** (Configurado con SHA-1).
+  - Acceso anónimo opcional.
 
 ---
 
@@ -28,31 +46,32 @@ Sigue estos pasos para configurar y ejecutar la aplicación en tu entorno local.
 flutter pub get
 ```
 
-### 3. Configuración de Firebase (CRÍTICO)
-Para que la aplicación se conecte correctamente a la base de datos, debes configurar tu propio proyecto en Firebase:
+### 3. Configuración de Firebase
+El proyecto ya cuenta con un archivo `google-services.json` configurado. Si deseas usar tu propio proyecto:
 
 1. Crea un proyecto en [Firebase Console](https://console.firebase.google.com/).
-2. Agrega una **App de Android** con el nombre de paquete: `com.example.app_bank`.
-3. **Huellas Digitales (SHA)**:
-   - Ejecuta en la terminal: `cd android && ./gradlew signingReport`.
-   - Copia el código **SHA-1** y **SHA-256**.
-   - Pégalos en la configuración de tu app en Firebase.
-4. **Archivo de Configuración**:
-   - Descarga `google-services.json` desde Firebase.
-   - Colócalo en la carpeta: `android/app/`.
-5. **Habilitar Servicios**:
-   - En Firebase, activa **Authentication** (Email y Google).
-   - Crea la base de datos **Firestore** y publica las reglas de acceso.
+2. Registra la app con el paquete: `com.example.app_bank`.
+3. Agrega tu propia huella digital **SHA-1** en la consola de Firebase.
+4. Habilita **Authentication** (Email y Google).
+5. Configura **Firestore Database** con las siguientes reglas sugeridas:
+```javascript
+match /users/{userId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+  match /transactions/{transactionId} {
+    allow read, write: if request.auth != null && request.auth.uid == userId;
+  }
+}
+```
 
 ### 4. Ejecución
-Para evitar advertencias de versiones de Gradle en versiones recientes de Flutter, usa el siguiente comando:
+Para asegurar la compatibilidad con las últimas versiones de Gradle y Kotlin incluidas en este proyecto:
 
 ```bash
 # Limpiar caché previa
 flutter clean
 
 # Ejecutar en el dispositivo
-flutter run --android-skip-build-dependency-validation
+flutter run
 ```
 
 ---
@@ -61,10 +80,11 @@ flutter run --android-skip-build-dependency-validation
 - **Fondo**: `#0B0E11` (Negro profundo)
 - **Superficie**: `#151921` (Gris azulado)
 - **Principal**: `#007AFF` (Azul vibrante)
+- **Acento**: `#2ECC71` (Verde esmeralda para ahorros)
 
 ---
 
 ## 🚀 Próximos Pasos
-- [ ] Implementar Formulario de Gasto Real.
-- [ ] Vincular Gráficos (`fl_chart`) con datos de Firestore.
-- [ ] Crear Pantalla de Perfil y Configuración.
+- [ ] Implementar notificaciones push para recordatorios de ahorro.
+- [ ] Integración real con APIs bancarias para lectura de SMS.
+- [ ] Exportación de reportes en PDF y Excel.
