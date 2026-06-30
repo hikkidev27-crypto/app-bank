@@ -24,32 +24,64 @@ class GoalsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildGoalCard(
-              context: context,
-              title: "Casa",
-              icon: Icons.home,
-              percentage: 45,
-              current: 22500,
-              target: 50000,
-              color: Colors.green,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: Provider.of<DatabaseService>(context).transactions,
+        builder: (context, snapshot) {
+          // Por ahora, como no hay colección de metas separada, 
+          // mostramos un mensaje vacío si no hay transacciones.
+          // En una versión futura, esto leería de la colección 'goals'.
+          
+          bool hasGoals = false; // Cambiar esto cuando se implemente la colección de metas
+          
+          if (!hasGoals) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.flag_outlined, size: 80, color: Colors.grey.withValues(alpha: 0.5)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "No tienes metas aún",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Pulsa el botón + para registrar un ahorro.",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildGoalCard(
+                  context: context,
+                  title: "Casa",
+                  icon: Icons.home,
+                  percentage: 45,
+                  current: 22500,
+                  target: 50000,
+                  color: Colors.green,
+                ),
+                const SizedBox(height: 20),
+                _buildGoalCard(
+                  context: context,
+                  title: "Viaje",
+                  icon: Icons.airplanemode_active,
+                  percentage: 80,
+                  current: 8000,
+                  target: 10000,
+                  color: Colors.blueAccent,
+                ),
+                const SizedBox(height: 120),
+              ],
             ),
-            const SizedBox(height: 20),
-            _buildGoalCard(
-              context: context,
-              title: "Viaje",
-              icon: Icons.airplanemode_active,
-              percentage: 80,
-              current: 8000,
-              target: 10000,
-              color: Colors.blueAccent,
-            ),
-            const SizedBox(height: 120),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

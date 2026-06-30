@@ -132,7 +132,16 @@ class ProfileScreen extends StatelessWidget {
           
           final String name = userData['name'] ?? "Usuario";
           final String email = userData['email'] ?? currentUser.email ?? "Sin correo";
-          final String initials = name.isNotEmpty ? name.substring(0, 2).toUpperCase() : "??";
+          
+          // Fix for initials logic to handle short names and avoid RangeError
+          String initials = "??";
+          if (name.isNotEmpty) {
+            if (name.length >= 2) {
+              initials = name.substring(0, 2).toUpperCase();
+            } else {
+              initials = name[0].toUpperCase();
+            }
+          }
           
           String memberSince = "Mar 2024";
           if (userData['createdAt'] != null) {

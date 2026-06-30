@@ -43,8 +43,10 @@ class HomeContent extends StatelessWidget {
               const SizedBox(height: 20),
               _buildFinanceCategories(context, savings, expenses, investments),
               const SizedBox(height: 24),
-              _buildMainGoalCard(context),
-              const SizedBox(height: 24),
+              if (savings > 0) ...[
+                _buildMainGoalCard(context),
+                const SizedBox(height: 24),
+              ],
               _buildRecentActivityHeader(context),
               const SizedBox(height: 16),
               _buildRecentActivityList(context, db),
@@ -124,7 +126,7 @@ class HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            "▲ 5.2% este mes",
+            "▲ 0% este mes",
             style: TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],

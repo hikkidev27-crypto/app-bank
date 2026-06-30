@@ -40,13 +40,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -71,7 +72,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(hintText: "Tu nombre"),
+                decoration: const InputDecoration(
+                  hintText: "Tu nombre",
+                ),
               ),
               const SizedBox(height: 24),
               
@@ -80,7 +83,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: "ejemplo@correo.com"),
+                decoration: const InputDecoration(
+                  hintText: "ejemplo@correo.com",
+                ),
               ),
               const SizedBox(height: 24),
               
@@ -212,14 +217,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (mounted) setState(() => _isLoading = false);
                     }
                   },
-                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white, size: 20),
-                  label: const Text(
+                  icon: FaIcon(
+                    FontAwesomeIcons.google, 
+                    color: isDark ? Colors.white : Colors.black87, 
+                    size: 20
+                  ),
+                  label: Text(
                     "Registrarse con Google",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87, 
+                      fontSize: 16, 
+                      fontWeight: FontWeight.bold
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.secondary),
+                    side: BorderSide(color: isDark ? AppColors.secondary : Colors.black12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: isDark ? Colors.transparent : Colors.white,
+                    elevation: isDark ? 0 : 2,
+                    shadowColor: Colors.black26,
                   ),
                 ),
               ),
